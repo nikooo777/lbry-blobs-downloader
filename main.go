@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -11,19 +12,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var reflectorServer = "refractor.lbry.com:5567"
+
 func main() {
+	concurrentThreads := int64(20)
 	if len(os.Args) < 2 {
 		logrus.Errorln("you must specify a blob hash to download")
 		os.Exit(1)
 	}
+	if len(os.Args) >= 3 {
+		reflectorServer = os.Args[2]
+	}
+	if len(os.Args) >= 4 {
+		var err error
+		concurrentThreads, err = strconv.ParseInt(os.Args[3], 10, 32)
+		if err != nil {
+			logrus.Errorln(err.Error())
+			os.Exit(1)
+		}
+	}
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 20; i++ {
+	for i := int64(0); i < concurrentThreads; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			err := DownloadBlob(os.Args[1])
 			if err != nil {
-				logrus.Fatalf(errors.FullTrace(err))
+				logrus.Error(errors.FullTrace(err))
 				os.Exit(1)
 			}
 		}()
@@ -52,7 +67,7 @@ func DownloadBlob(hash string) error {
 // GetBlobStore returns default pre-configured blob store.
 func GetBlobStore() *peer.Store {
 	return peer.NewStore(peer.StoreOpts{
-		Address: "refractor.lbry.com:5567",
+		Address: reflectorServer,
 		Timeout: 30 * time.Second,
 	})
 }
