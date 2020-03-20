@@ -2,15 +2,17 @@ package main
 
 import (
 	"encoding/hex"
+
 	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/lbryio/reflector.go/peer/quic"
+
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
-	"github.com/lbryio/reflector.go/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -94,8 +96,8 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 }
 
 // GetBlobStore returns default pre-configured blob store.
-func GetBlobStore() *peer.Store {
-	return peer.NewStore(peer.StoreOpts{
+func GetBlobStore() *quic.Store {
+	return quic.NewStore(quic.StoreOpts{
 		Address: reflectorServer,
 		Timeout: 30 * time.Second,
 	})
