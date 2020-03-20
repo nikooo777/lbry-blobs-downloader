@@ -1,71 +1,83 @@
 package main
 
 import (
-	"encoding/hex"
-
-	"io/ioutil"
+	"fmt"
 	"os"
-	"strconv"
 	"sync"
-	"time"
 
-	"github.com/lbryio/reflector.go/peer/quic"
+	"blobdownloader/quic"
+	"blobdownloader/shared"
+	"blobdownloader/tcp"
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
-var reflectorServer = "refractor.lbry.com:5567"
+var (
+	hash              string
+	reflectorAddr     string
+	peerPort          string
+	quicPort          string
+	isStream          bool
+	concurrentThreads int
+	mode              int
+)
 
 func main() {
-	concurrentThreads := int64(20)
-	isStream := false
-	var err error
-	if len(os.Args) < 2 {
-		logrus.Errorln("you must specify a blob hash to download")
+	cmd := &cobra.Command{
+		Use:   "blobdownloader",
+		Short: "download blobs or streams from reflector.",
+		Run:   downloader,
+		Args:  cobra.RangeArgs(0, 0),
+	}
+	cmd.Flags().StringVar(&hash, "hash", "58742ec8f86abbaadf11ad45e22a78c01e3f89ac3d9f3f1c0d1b77198d34b52672aad8f908a68c763d6767858761c247", "hash of the blob or sdblob")
+	cmd.Flags().StringVar(&reflectorAddr, "reflector-address", "reflector.lbry.com", "the address of the reflector server (without port)")
+	cmd.Flags().StringVar(&peerPort, "peer-port", "5567", "the port reflector listens to for TCP peer connections")
+	cmd.Flags().StringVar(&quicPort, "quic-port", "5568", "the port reflector listens to for QUIC peer connections")
+	cmd.Flags().BoolVar(&isStream, "stream", false, "whether the hash is for a stream or not (download whole file)")
+	cmd.Flags().IntVar(&concurrentThreads, "concurrent-threads", 1, "Number of concurrent downloads to run")
+	cmd.Flags().IntVar(&mode, "mode", 0, "0: only use QUIC, 1: only use TCP, 2: use both")
+
+	shared.ReflectorPeerServer = reflectorAddr + ":" + peerPort
+	shared.ReflectorQuicServer = reflectorAddr + ":" + quicPort
+	if err := cmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
-	if len(os.Args) >= 3 {
-		reflectorServer = os.Args[2]
-	}
-	if len(os.Args) >= 4 {
-		isStream, err = strconv.ParseBool(os.Args[3])
-		if err != nil {
-			logrus.Errorln(err.Error())
-			os.Exit(1)
-		}
-	}
-	if len(os.Args) >= 5 {
-		var err error
-		concurrentThreads, err = strconv.ParseInt(os.Args[4], 10, 32)
-		if err != nil {
-			logrus.Errorln(err.Error())
-			os.Exit(1)
-		}
-	}
-	logrus.Println(concurrentThreads)
+
+}
+
+func downloader(cmd *cobra.Command, args []string) {
+	var err error
+
 	wg := &sync.WaitGroup{}
-	for i := int64(0); i < concurrentThreads; i++ {
+	for i := 0; i < concurrentThreads; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if isStream {
-				blob, err := DownloadBlob(os.Args[1])
+				err := downloadStream(hash)
 				if err != nil {
-					logrus.Error(errors.FullTrace(err))
-					os.Exit(1)
+					panic(errors.FullTrace(err))
 				}
-				sdb := &stream.SDBlob{}
-				err = sdb.FromBlob(*blob)
-
-				if err != nil {
-					logrus.Error(errors.FullTrace(err))
-					os.Exit(1)
-				}
-				DownloadStream(sdb)
 			} else {
-				_, err := DownloadBlob(os.Args[1])
+				switch mode {
+				case 0:
+					_, err = quic.DownloadBlob(hash)
+				case 1:
+					_, err = tcp.DownloadBlob(hash)
+				case 2:
+					logrus.Println("QUIC protocol:")
+					_, err = quic.DownloadBlob(hash)
+					if err != nil {
+						logrus.Error(errors.FullTrace(err))
+						os.Exit(1)
+					}
+					logrus.Println("TCP protocol:")
+					_, err = tcp.DownloadBlob(hash)
+				}
 				if err != nil {
 					logrus.Error(errors.FullTrace(err))
 					os.Exit(1)
@@ -76,52 +88,38 @@ func main() {
 	wg.Wait()
 }
 
-func DownloadBlob(hash string) (*stream.Blob, error) {
-	bStore := GetBlobStore()
-	start := time.Now()
-	blob, err := bStore.Get(hash)
+func downloadStream(hash string) error {
+	var blob *stream.Blob
+	var err error
+	switch mode {
+	case 0, 2:
+		blob, err = quic.DownloadBlob(hash)
+	case 1:
+		blob, err = tcp.DownloadBlob(hash)
+	}
 	if err != nil {
-		err = errors.Prefix(hash, err)
-		return nil, errors.Err(err)
+		return err
 	}
-	elapsed := time.Since(start)
-	logrus.Infof("download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = ioutil.WriteFile(hash, blob, 0644)
+	sdb := &stream.SDBlob{}
+	err = sdb.FromBlob(*blob)
+
 	if err != nil {
-		return nil, errors.Err(err)
+		return err
 	}
-	elapsed = time.Since(start) - elapsed
-	//logrus.Infof("save time: %d us\tSpeed: %.2f MB/s", elapsed.Microseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	return &blob, nil
-}
 
-// GetBlobStore returns default pre-configured blob store.
-func GetBlobStore() *quic.Store {
-	return quic.NewStore(quic.StoreOpts{
-		Address: reflectorServer,
-		Timeout: 30 * time.Second,
-	})
-}
+	switch mode {
+	case 0:
+		speed := quic.DownloadStream(sdb)
+		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
+	case 1:
+		speed := tcp.DownloadStream(sdb)
+		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
 
-func DownloadStream(blob *stream.SDBlob) {
-	hashes := GetStreamHashes(blob)
-	for _, hash := range hashes {
-		logrus.Info(hash)
-		_, err := DownloadBlob(hash)
-		if err != nil {
-			logrus.Error(errors.FullTrace(err))
-		}
+	case 2:
+		speed := quic.DownloadStream(sdb)
+		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
+		speed = tcp.DownloadStream(sdb)
+		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
 	}
-}
-
-func GetStreamHashes(blob *stream.SDBlob) []string {
-	blobs := make([]string, 0, len(blob.BlobInfos))
-	for _, b := range blob.BlobInfos {
-		hash := hex.EncodeToString(b.BlobHash)
-		if hash == "" {
-			continue
-		}
-		blobs = append(blobs, hex.EncodeToString(b.BlobHash))
-	}
-	return blobs
+	return nil
 }
