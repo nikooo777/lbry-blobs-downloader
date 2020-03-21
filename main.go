@@ -32,7 +32,7 @@ func main() {
 		Run:   downloader,
 		Args:  cobra.RangeArgs(0, 0),
 	}
-	cmd.Flags().StringVar(&hash, "hash", "58742ec8f86abbaadf11ad45e22a78c01e3f89ac3d9f3f1c0d1b77198d34b52672aad8f908a68c763d6767858761c247", "hash of the blob or sdblob")
+	cmd.Flags().StringVar(&hash, "hash", "c333e168b1adb5b8971af26ca2c882e60e7a908167fa9582b47a044f896484485df9f5a0ada7ef6dc976489301e8049d", "hash of the blob or sdblob")
 	cmd.Flags().StringVar(&reflectorAddr, "reflector-address", "reflector.lbry.com", "the address of the reflector server (without port)")
 	cmd.Flags().StringVar(&peerPort, "peer-port", "5567", "the port reflector listens to for TCP peer connections")
 	cmd.Flags().StringVar(&quicPort, "quic-port", "5568", "the port reflector listens to for QUIC peer connections")
@@ -111,16 +111,16 @@ func downloadStream(hash string) error {
 	switch mode {
 	case 0:
 		speed := quic.DownloadStream(sdb)
-		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
+		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case 1:
 		speed := tcp.DownloadStream(sdb)
-		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
+		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 
 	case 2:
 		speed := quic.DownloadStream(sdb)
-		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
+		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 		speed = tcp.DownloadStream(sdb)
-		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/104)
+		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	}
 	return nil
 }
