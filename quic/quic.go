@@ -21,7 +21,7 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
-	logrus.Infof("download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
+	logrus.Infof("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	err = ioutil.WriteFile(hash, blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)

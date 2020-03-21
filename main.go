@@ -40,8 +40,6 @@ func main() {
 	cmd.Flags().IntVar(&concurrentThreads, "concurrent-threads", 1, "Number of concurrent downloads to run")
 	cmd.Flags().IntVar(&mode, "mode", 0, "0: only use QUIC, 1: only use TCP, 2: use both")
 
-	shared.ReflectorPeerServer = reflectorAddr + ":" + peerPort
-	shared.ReflectorQuicServer = reflectorAddr + ":" + quicPort
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -51,7 +49,10 @@ func main() {
 
 func downloader(cmd *cobra.Command, args []string) {
 	var err error
-
+	shared.ReflectorPeerServer = reflectorAddr + ":" + peerPort
+	shared.ReflectorQuicServer = reflectorAddr + ":" + quicPort
+	logrus.Println("tcp server: " + shared.ReflectorPeerServer)
+	logrus.Println("quic server: " + shared.ReflectorQuicServer)
 	wg := &sync.WaitGroup{}
 	for i := 0; i < concurrentThreads; i++ {
 		wg.Add(1)
