@@ -3,6 +3,7 @@ package tcp
 import (
 	"blobdownloader/shared"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/lbryio/errors.go"
@@ -22,7 +23,11 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 	}
 	elapsed := time.Since(start)
 	logrus.Infof("[T] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = ioutil.WriteFile(hash, blob, 0644)
+	err = os.MkdirAll("./downloads", os.ModePerm)
+	if err != nil {
+		return nil, errors.Err(err)
+	}
+	err = ioutil.WriteFile("./downloads/"+hash, blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}

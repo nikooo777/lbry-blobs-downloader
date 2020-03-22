@@ -3,17 +3,18 @@ package quic
 import (
 	"blobdownloader/shared"
 	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/lbryio/errors.go"
 	"github.com/lbryio/lbry.go/v2/stream"
 	"github.com/lbryio/reflector.go/peer/quic"
-	"github.com/lbryio/reflector.go/store"
 	"github.com/sirupsen/logrus"
 )
 
 func DownloadBlob(hash string) (*stream.Blob, error) {
 	bStore := GetQuicBlobStore()
+	defer bStore.CloseStore()
 	start := time.Now()
 	blob, err := bStore.Get(hash)
 	if err != nil {
@@ -22,7 +23,11 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 	}
 	elapsed := time.Since(start)
 	logrus.Infof("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = ioutil.WriteFile(hash, blob, 0644)
+	err = os.MkdirAll("./downloads", os.ModePerm)
+	if err != nil {
+		return nil, errors.Err(err)
+	}
+	err = ioutil.WriteFile("./downloads/"+hash, blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
@@ -32,7 +37,7 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 }
 
 // GetQuicBlobStore returns default pre-configured blob store.
-func GetQuicBlobStore() store.BlobStore {
+func GetQuicBlobStore() *quic.Store {
 	return quic.NewStore(quic.StoreOpts{
 		Address: shared.ReflectorQuicServer,
 		Timeout: 30 * time.Second,
