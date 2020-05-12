@@ -14,7 +14,7 @@ import (
 )
 
 func DownloadBlob(hash string) (*stream.Blob, error) {
-	bStore := GetQuicBlobStore()
+	bStore := GetTcpBlobStore()
 	start := time.Now()
 	blob, err := bStore.Get(hash)
 	if err != nil {
@@ -37,7 +37,7 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 }
 
 // GetQuicBlobStore returns default pre-configured blob store.
-func GetQuicBlobStore() store.BlobStore {
+func GetTcpBlobStore() store.BlobStore {
 	return peer.NewStore(peer.StoreOpts{
 		Address: shared.ReflectorPeerServer,
 		Timeout: 30 * time.Second,
