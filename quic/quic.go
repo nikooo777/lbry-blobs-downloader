@@ -4,17 +4,17 @@ import (
 	"blobdownloader/shared"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/lbryio/errors.go"
 	"github.com/lbryio/lbry.go/v2/stream"
-	"github.com/lbryio/reflector.go/peer/quic"
+	"github.com/lbryio/reflector.go/peer/http3"
 	"github.com/sirupsen/logrus"
 )
 
 func DownloadBlob(hash string) (*stream.Blob, error) {
 	bStore := GetQuicBlobStore()
-	defer bStore.CloseStore()
 	start := time.Now()
 	blob, err := bStore.Get(hash)
 	if err != nil {
@@ -37,10 +37,10 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 }
 
 // GetQuicBlobStore returns default pre-configured blob store.
-func GetQuicBlobStore() *quic.Store {
-	return quic.NewStore(quic.StoreOpts{
+func GetQuicBlobStore() *http3.Store {
+	return http3.NewStore(http3.StoreOpts{
 		Address: shared.ReflectorQuicServer,
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second,
 	})
 }
 
@@ -52,10 +52,21 @@ func DownloadStream(blob *stream.SDBlob) float64 {
 	for _, hash := range hashes {
 		logrus.Info(hash)
 		begin := time.Now()
-		b, err := DownloadBlob(hash)
-		milliseconds += time.Since(begin).Milliseconds()
-		if err != nil {
-			logrus.Error(errors.FullTrace(err))
+		var b *stream.Blob
+		var err error
+		for {
+			b, err = DownloadBlob(hash)
+			milliseconds += time.Since(begin).Milliseconds()
+			if err != nil {
+				if strings.Contains(err.Error(), "No recent network activity") {
+					logrus.Infoln("failed to download blob in time. retrying...")
+				} else {
+					logrus.Error(errors.FullTrace(err))
+					return 0
+				}
+			} else {
+				break
+			}
 		}
 		totalSize += b.Size()
 	}
