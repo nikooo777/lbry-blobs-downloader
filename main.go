@@ -11,6 +11,7 @@ import (
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,7 @@ func main() {
 		Args:  cobra.RangeArgs(0, 0),
 	}
 	cmd.Flags().StringVar(&hash, "hash", "c333e168b1adb5b8971af26ca2c882e60e7a908167fa9582b47a044f896484485df9f5a0ada7ef6dc976489301e8049d", "hash of the blob or sdblob")
-	cmd.Flags().StringVar(&reflectorAddr, "reflector-address", "reflector.lbry.com", "the address of the reflector server (without port)")
+	cmd.Flags().StringVar(&reflectorAddr, "reflector-address", "cdn.reflector.lbry.com", "the address of the reflector server (without port)")
 	cmd.Flags().StringVar(&peerPort, "peer-port", "5567", "the port reflector listens to for TCP peer connections")
 	cmd.Flags().StringVar(&quicPort, "quic-port", "5568", "the port reflector listens to for QUIC peer connections")
 	cmd.Flags().BoolVar(&isStream, "stream", false, "whether the hash is for a stream or not (download whole file)")

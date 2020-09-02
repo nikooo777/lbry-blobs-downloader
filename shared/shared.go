@@ -6,8 +6,8 @@ import (
 	"github.com/lbryio/lbry.go/v2/stream"
 )
 
-var ReflectorPeerServer = "refractor.lbry.com:5567"
-var ReflectorQuicServer = "refractor.lbry.com:5568"
+var ReflectorPeerServer = "cdn.reflector.lbry.com:5567"
+var ReflectorQuicServer = "cdn.reflector.lbry.com:5568"
 
 func GetStreamHashes(blob *stream.SDBlob) []string {
 	blobs := make([]string, 0, len(blob.BlobInfos))

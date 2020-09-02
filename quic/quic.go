@@ -1,15 +1,17 @@
 package quic
 
 import (
-	"blobdownloader/shared"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/lbryio/errors.go"
+	"blobdownloader/shared"
+
+	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
 	"github.com/lbryio/reflector.go/peer/http3"
+
 	"github.com/sirupsen/logrus"
 )
 

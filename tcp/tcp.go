@@ -1,15 +1,17 @@
 package tcp
 
 import (
-	"blobdownloader/shared"
 	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/lbryio/errors.go"
+	"blobdownloader/shared"
+
+	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
 	"github.com/lbryio/reflector.go/peer"
 	"github.com/lbryio/reflector.go/store"
+
 	"github.com/sirupsen/logrus"
 )
 
