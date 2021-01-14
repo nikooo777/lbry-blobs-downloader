@@ -25,7 +25,9 @@ func BuildStream(sdBlob *stream.SDBlob, fileName string, destinationPath string,
 			continue
 		}
 		hash := hex.EncodeToString(info.BlobHash)
-		blobToDecrypt, err := ioutil.ReadFile(path.Join(blobsDirectory, hash))
+		blobPath := path.Join(blobsDirectory, hash)
+		blobToDecrypt, err := ioutil.ReadFile(blobPath)
+		_ = os.Remove(blobPath) //we don't need the blob anymore
 		if err != nil {
 			return errors.Err(err)
 		}
