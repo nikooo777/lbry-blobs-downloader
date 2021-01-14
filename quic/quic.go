@@ -15,15 +15,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func DownloadBlob(hash string) (*stream.Blob, error) {
+func DownloadBlob(hash string, fullTrace bool) (*stream.Blob, error) {
 	bStore := GetQuicBlobStore()
 	start := time.Now()
-	blob, err := bStore.Get(hash)
+	blob, trace, err := bStore.Get(hash)
 	if err != nil {
 		err = errors.Prefix(hash, err)
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
+	if fullTrace || trace.Stacks[0].HostName == "reflector" {
+		logrus.Infoln(trace.String())
+	}
 	logrus.Infof("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	err = os.MkdirAll("./downloads", os.ModePerm)
 	if err != nil {
@@ -47,7 +50,7 @@ func GetQuicBlobStore() *http3.Store {
 }
 
 // downloads a stream and returns the speed in bytes per second
-func DownloadStream(blob *stream.SDBlob) float64 {
+func DownloadStream(blob *stream.SDBlob, fullTrace bool) float64 {
 	hashes := shared.GetStreamHashes(blob)
 	totalSize := 0
 	milliseconds := int64(0)
@@ -57,7 +60,7 @@ func DownloadStream(blob *stream.SDBlob) float64 {
 		var b *stream.Blob
 		var err error
 		for {
-			b, err = DownloadBlob(hash)
+			b, err = DownloadBlob(hash, fullTrace)
 			milliseconds += time.Since(begin).Milliseconds()
 			if err != nil {
 				if strings.Contains(err.Error(), "No recent network activity") {

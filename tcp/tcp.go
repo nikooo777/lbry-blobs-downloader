@@ -18,7 +18,7 @@ import (
 func DownloadBlob(hash string) (*stream.Blob, error) {
 	bStore := GetTcpBlobStore()
 	start := time.Now()
-	blob, err := bStore.Get(hash)
+	blob, _, err := bStore.Get(hash)
 	if err != nil {
 		err = errors.Prefix(hash, err)
 		return nil, errors.Err(err)
