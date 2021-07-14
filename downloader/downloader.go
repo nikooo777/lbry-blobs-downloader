@@ -15,18 +15,19 @@ type Mode int
 const (
 	UDP Mode = iota
 	TCP
-	BOTH
+	HTTP
+	ALL
 )
 
 func DownloadStream(sdHash string, fullTrace bool, mode Mode) (*stream.SDBlob, error) {
 	var blob *stream.Blob
 	var err error
 	switch mode {
-	case 0, 3:
+	case UDP:
 		blob, err = quic.DownloadBlob(sdHash, fullTrace)
-	case 1:
+	case TCP:
 		blob, err = tcp.DownloadBlob(sdHash)
-	case 2:
+	case HTTP,ALL:
 		blob, err = http.DownloadBlob(sdHash, fullTrace)
 	}
 	if err != nil {
@@ -40,16 +41,16 @@ func DownloadStream(sdHash string, fullTrace bool, mode Mode) (*stream.SDBlob, e
 	}
 
 	switch mode {
-	case 0:
+	case UDP:
 		speed := quic.DownloadStream(sdb, fullTrace)
 		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
-	case 1:
+	case TCP:
 		speed := tcp.DownloadStream(sdb)
 		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
-	case 2:
+	case HTTP:
 		speed := http.DownloadStream(sdb, fullTrace)
 		logrus.Printf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
-	case 3:
+	case ALL:
 		speed := quic.DownloadStream(sdb, fullTrace)
 		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 		speed = tcp.DownloadStream(sdb)
