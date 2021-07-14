@@ -81,7 +81,8 @@ func blobDownloader(cmd *cobra.Command, args []string) {
 					_, err = downloader.DownloadStream(hash, fullTrace, downloader.Mode(mode))
 				}
 				if err != nil {
-					panic(errors.FullTrace(err))
+					logrus.Error(errors.FullTrace(err))
+					os.Exit(1)
 				}
 			} else {
 				switch mode {
