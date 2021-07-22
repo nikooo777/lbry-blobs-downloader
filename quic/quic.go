@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"blobdownloader/shared"
+	"blobsdownloader/shared"
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
@@ -19,14 +19,14 @@ func DownloadBlob(hash string, fullTrace bool) (*stream.Blob, error) {
 	bStore := GetQuicBlobStore()
 	start := time.Now()
 	blob, trace, err := bStore.Get(hash)
+	if fullTrace {
+		logrus.Infoln(trace.String())
+	}
 	if err != nil {
 		err = errors.Prefix(hash, err)
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
-	if fullTrace || trace.Stacks[0].HostName == "reflector" {
-		logrus.Infoln(trace.String())
-	}
 	logrus.Infof("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	err = os.MkdirAll("./downloads", os.ModePerm)
 	if err != nil {

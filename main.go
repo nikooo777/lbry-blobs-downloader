@@ -5,11 +5,11 @@ import (
 	"os"
 	"sync"
 
-	"blobdownloader/downloader"
-	"blobdownloader/http"
-	"blobdownloader/quic"
-	"blobdownloader/shared"
-	"blobdownloader/tcp"
+	"blobsdownloader/downloader"
+	"blobsdownloader/http"
+	"blobsdownloader/quic"
+	"blobsdownloader/shared"
+	"blobsdownloader/tcp"
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 
@@ -19,7 +19,7 @@ import (
 
 var (
 	hash              string
-	reflectorAddr     string
+	upstreamReflector string
 	peerPort          string
 	quicPort          string
 	httpPort          string
@@ -32,19 +32,19 @@ var (
 
 func main() {
 	cmd := &cobra.Command{
-		Use:   "blobdownloader",
+		Use:   "blobsdownloader",
 		Short: "download blobs or streams from reflector.",
-		Run:   blobDownloader,
+		Run:   blobsDownloader,
 		Args:  cobra.RangeArgs(0, 0),
 	}
 	cmd.Flags().StringVar(&hash, "hash", "c333e168b1adb5b8971af26ca2c882e60e7a908167fa9582b47a044f896484485df9f5a0ada7ef6dc976489301e8049d", "hash of the blob or sdblob")
-	cmd.Flags().StringVar(&reflectorAddr, "reflector-address", "cdn.reflector.lbry.com", "the address of the reflector server (without port)")
+	cmd.Flags().StringVar(&upstreamReflector, "upstream-reflector", "reflector.lbry.com", "the address of the reflector server (without port)")
 	cmd.Flags().StringVar(&peerPort, "peer-port", "5567", "the port reflector listens to for TCP peer connections")
-	cmd.Flags().StringVar(&quicPort, "quic-port", "5568", "the port reflector listens to for QUIC peer connections")
+	cmd.Flags().StringVar(&quicPort, "http3-port", "5568", "the port reflector listens to for HTTP3 peer connections")
 	cmd.Flags().StringVar(&httpPort, "http-port", "5569", "the port reflector listens to for HTTP connections")
 	cmd.Flags().BoolVar(&isStream, "stream", false, "whether the hash is for a stream or not (download whole file)")
 	cmd.Flags().IntVar(&concurrentThreads, "concurrent-threads", 1, "Number of concurrent downloads to run")
-	cmd.Flags().IntVar(&mode, "mode", 0, "0: only use QUIC, 1: only use TCP, 2: only use HTTP, 3: use all")
+	cmd.Flags().IntVar(&mode, "mode", 0, "0: HTTP3, 1: TCP (LBRY), 2: HTTP, 3: use all")
 	cmd.Flags().BoolVar(&fullTrace, "trace", false, "print all traces")
 	cmd.Flags().BoolVar(&build, "build", false, "build the file from the blobs")
 
@@ -55,13 +55,13 @@ func main() {
 
 }
 
-func blobDownloader(cmd *cobra.Command, args []string) {
+func blobsDownloader(cmd *cobra.Command, args []string) {
 	var err error
-	shared.ReflectorPeerServer = reflectorAddr + ":" + peerPort
-	shared.ReflectorQuicServer = reflectorAddr + ":" + quicPort
-	shared.ReflectorHttpServer = reflectorAddr + ":" + httpPort
+	shared.ReflectorPeerServer = upstreamReflector + ":" + peerPort
+	shared.ReflectorQuicServer = upstreamReflector + ":" + quicPort
+	shared.ReflectorHttpServer = upstreamReflector + ":" + httpPort
 	logrus.Println("tcp server: " + shared.ReflectorPeerServer)
-	logrus.Println("quic server: " + shared.ReflectorQuicServer)
+	logrus.Println("http3 server: " + shared.ReflectorQuicServer)
 	logrus.Println("http server: " + shared.ReflectorHttpServer)
 	wg := &sync.WaitGroup{}
 	for i := 0; i < concurrentThreads; i++ {
@@ -93,7 +93,7 @@ func blobDownloader(cmd *cobra.Command, args []string) {
 				case 2:
 					_, err = http.DownloadBlob(hash, fullTrace)
 				case 3:
-					logrus.Println("QUIC protocol:")
+					logrus.Println("HTTP3 protocol:")
 					_, err = quic.DownloadBlob(hash, fullTrace)
 					if err != nil {
 						logrus.Error(errors.FullTrace(err))

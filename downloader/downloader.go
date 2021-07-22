@@ -1,10 +1,10 @@
 package downloader
 
 import (
-	"blobdownloader/http"
-	"blobdownloader/quic"
-	"blobdownloader/shared"
-	"blobdownloader/tcp"
+	"blobsdownloader/http"
+	"blobsdownloader/quic"
+	"blobsdownloader/shared"
+	"blobsdownloader/tcp"
 
 	"github.com/lbryio/lbry.go/v2/stream"
 	"github.com/sirupsen/logrus"
