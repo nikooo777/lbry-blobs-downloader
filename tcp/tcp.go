@@ -9,7 +9,7 @@ import (
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
-	"github.com/lbryio/reflector.go/peer"
+	"github.com/lbryio/reflector.go/server/peer"
 	"github.com/lbryio/reflector.go/store"
 
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
-	logrus.Infof("[T] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
+	logrus.Debugln("[T] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	err = os.MkdirAll("./downloads", os.ModePerm)
 	if err != nil {
 		return nil, errors.Err(err)
@@ -52,7 +52,7 @@ func DownloadStream(blob *stream.SDBlob) float64 {
 	totalSize := 0
 	milliseconds := int64(0)
 	for _, hash := range hashes {
-		logrus.Info(hash)
+		logrus.Debugln(hash)
 		begin := time.Now()
 		b, err := DownloadBlob(hash)
 		milliseconds += time.Since(begin).Milliseconds()

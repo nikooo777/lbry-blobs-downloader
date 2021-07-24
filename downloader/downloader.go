@@ -27,7 +27,7 @@ func DownloadStream(sdHash string, fullTrace bool, mode Mode) (*stream.SDBlob, e
 		blob, err = quic.DownloadBlob(sdHash, fullTrace)
 	case TCP:
 		blob, err = tcp.DownloadBlob(sdHash)
-	case HTTP,ALL:
+	case HTTP, ALL:
 		blob, err = http.DownloadBlob(sdHash, fullTrace)
 	}
 	if err != nil {
@@ -43,20 +43,20 @@ func DownloadStream(sdHash string, fullTrace bool, mode Mode) (*stream.SDBlob, e
 	switch mode {
 	case UDP:
 		speed := quic.DownloadStream(sdb, fullTrace)
-		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
+		logrus.Debugf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case TCP:
 		speed := tcp.DownloadStream(sdb)
-		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
+		logrus.Debugf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case HTTP:
 		speed := http.DownloadStream(sdb, fullTrace)
-		logrus.Printf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
+		logrus.Debugf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case ALL:
 		speed := quic.DownloadStream(sdb, fullTrace)
-		logrus.Printf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
+		logrus.Debugf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 		speed = tcp.DownloadStream(sdb)
-		logrus.Printf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
+		logrus.Debugf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 		speed = http.DownloadStream(sdb, fullTrace)
-		logrus.Printf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
+		logrus.Debugf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	}
 	return sdb, nil
 }
