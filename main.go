@@ -5,11 +5,11 @@ import (
 	"os"
 	"sync"
 
-	"blobsdownloader/downloader"
-	"blobsdownloader/http"
-	"blobsdownloader/quic"
-	"blobsdownloader/shared"
-	"blobsdownloader/tcp"
+	"github.com/nikooo777/lbry-blobs-downloader/downloader"
+	"github.com/nikooo777/lbry-blobs-downloader/http"
+	"github.com/nikooo777/lbry-blobs-downloader/quic"
+	"github.com/nikooo777/lbry-blobs-downloader/shared"
+	"github.com/nikooo777/lbry-blobs-downloader/tcp"
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 

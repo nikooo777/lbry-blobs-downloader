@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"blobsdownloader/downloader"
-	"blobsdownloader/shared"
+	"github.com/nikooo777/lbry-blobs-downloader/downloader"
+	"github.com/nikooo777/lbry-blobs-downloader/shared"
 )
 
 // if you want to use the blobsdownloader as a library you can follow this example

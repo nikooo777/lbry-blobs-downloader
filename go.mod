@@ -1,4 +1,4 @@
-module blobsdownloader
+module github.com/nikooo777/lbry-blobs-downloader
 
 go 1.16
 
