@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/lbryio/lbry.go v1.1.2 // indirect
 	github.com/lbryio/lbry.go/v2 v2.7.2-0.20210416195322-6516df1418e3
-	github.com/lbryio/reflector.go v1.1.3-0.20210724003522-e1b4f21e00dc
+	github.com/lbryio/reflector.go v1.1.3-0.20210805154720-86f3e62aa8d6
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 )

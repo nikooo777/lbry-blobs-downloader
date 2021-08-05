@@ -27,7 +27,7 @@ func DownloadBlob(hash string, fullTrace bool) (*stream.Blob, error) {
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
-	logrus.Debugln("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
+	logrus.Debugf("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	err = os.MkdirAll("./downloads", os.ModePerm)
 	if err != nil {
 		return nil, errors.Err(err)
