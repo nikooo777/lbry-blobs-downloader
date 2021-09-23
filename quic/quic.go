@@ -3,6 +3,7 @@ package quic
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func DownloadBlob(hash string, fullTrace bool) (*stream.Blob, error) {
+func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blob, error) {
 	bStore := GetQuicBlobStore()
 	start := time.Now()
 	blob, trace, err := bStore.Get(hash)
@@ -28,11 +29,11 @@ func DownloadBlob(hash string, fullTrace bool) (*stream.Blob, error) {
 	}
 	elapsed := time.Since(start)
 	logrus.Debugf("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = os.MkdirAll("./downloads", os.ModePerm)
+	err = os.MkdirAll(downloadPath, os.ModePerm)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	err = ioutil.WriteFile("./downloads/"+hash, blob, 0644)
+	err = ioutil.WriteFile(path.Join(downloadPath, hash), blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
@@ -49,8 +50,8 @@ func GetQuicBlobStore() *http3.Store {
 	})
 }
 
-// downloads a stream and returns the speed in bytes per second
-func DownloadStream(blob *stream.SDBlob, fullTrace bool) float64 {
+//DownloadStream downloads a stream and returns the speed in bytes per second
+func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) float64 {
 	hashes := shared.GetStreamHashes(blob)
 	totalSize := 0
 	milliseconds := int64(0)
@@ -60,7 +61,7 @@ func DownloadStream(blob *stream.SDBlob, fullTrace bool) float64 {
 		var b *stream.Blob
 		var err error
 		for {
-			b, err = DownloadBlob(hash, fullTrace)
+			b, err = DownloadBlob(hash, fullTrace, downloadPath)
 			milliseconds += time.Since(begin).Milliseconds()
 			if err != nil {
 				if strings.Contains(err.Error(), "No recent network activity") {

@@ -20,12 +20,12 @@ func MySoftware() {
 	//static, it's ugly but it works for now
 	shared.ReflectorPeerServer = fmt.Sprintf("%s:%d", downloadServer, TCPPort)
 	shared.ReflectorQuicServer = fmt.Sprintf("%s:%d", downloadServer, UDPPort)
-	shared.ReflectorQuicServer = fmt.Sprintf("%s:%d", downloadServer, HTTPPort)
-	err := os.MkdirAll("./mypersoanldownloads/", os.ModePerm)
+	shared.ReflectorHttpServer = fmt.Sprintf("%s:%d", downloadServer, HTTPPort)
+	err := os.MkdirAll("./mypersonaldownloads/", os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
-	err = downloader.DownloadAndBuild(sdHash, false, downloader.HTTP, "jeremy.mp4", "./mypersoanldownloads/")
+	err = downloader.DownloadAndBuild(sdHash, false, downloader.HTTP, "jeremy.mp4", "./mypersonaldownloads/")
 	if err != nil {
 		panic(err)
 	}
