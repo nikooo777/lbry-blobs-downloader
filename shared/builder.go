@@ -12,7 +12,10 @@ import (
 )
 
 func BuildStream(sdBlob *stream.SDBlob, fileName string, destinationPath string, blobsDirectory string) error {
-	tmpDir := os.TempDir()
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return errors.Err(err)
+	}
 	tmpName := path.Join(tmpDir, fileName+".tmp")
 	finalName := path.Join(destinationPath, fileName)
 	f, err := os.Create(tmpName)

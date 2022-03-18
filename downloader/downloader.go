@@ -1,14 +1,16 @@
 package downloader
 
 import (
-	"os"
+	"io/ioutil"
 
-	"github.com/nikooo777/lbry-blobs-downloader/http"
-	"github.com/nikooo777/lbry-blobs-downloader/quic"
+	"github.com/nikooo777/lbry-blobs-downloader/protocols/http"
+	"github.com/nikooo777/lbry-blobs-downloader/protocols/http3"
+	"github.com/nikooo777/lbry-blobs-downloader/protocols/tcp"
 	"github.com/nikooo777/lbry-blobs-downloader/shared"
-	"github.com/nikooo777/lbry-blobs-downloader/tcp"
 
+	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,16 +23,29 @@ const (
 	ALL
 )
 
-func DownloadStream(sdHash string, fullTrace bool, mode Mode, downloadPath string) (*stream.SDBlob, error) {
+type ServerParams struct {
+	TcpServerAddress   string
+	TcpServerPort      string
+	Http3ServerAddress string
+	Http3ServerPort    string
+	HttpServerAddress  string
+	HttpServerPort     string
+}
+
+func DownloadStream(sdHash string, fullTrace bool, mode Mode, downloadPath string, servers ServerParams) (*stream.SDBlob, error) {
 	var blob *stream.Blob
 	var err error
+
+	tcpDownloader := tcp.NewTcpBlobDownloader(servers.TcpServerAddress, servers.TcpServerPort)
+	http3Downloader := http3.NewHttp3BlobDownloader(servers.Http3ServerAddress, servers.Http3ServerPort)
+	HttpDownloader := http.NewHttpBlobDownloader(servers.HttpServerAddress, servers.HttpServerPort)
 	switch mode {
 	case UDP:
-		blob, err = quic.DownloadBlob(sdHash, fullTrace, downloadPath)
+		blob, err = http3Downloader.DownloadBlob(sdHash, fullTrace, downloadPath)
 	case TCP:
-		blob, err = tcp.DownloadBlob(sdHash, downloadPath)
+		blob, err = tcpDownloader.DownloadBlob(sdHash, fullTrace, downloadPath)
 	case HTTP, ALL:
-		blob, err = http.DownloadBlob(sdHash, fullTrace, downloadPath)
+		blob, err = HttpDownloader.DownloadBlob(sdHash, fullTrace, downloadPath)
 	}
 	if err != nil {
 		return nil, err
@@ -41,31 +56,34 @@ func DownloadStream(sdHash string, fullTrace bool, mode Mode, downloadPath strin
 	if err != nil {
 		return nil, err
 	}
-
 	switch mode {
 	case UDP:
-		speed := quic.DownloadStream(sdb, fullTrace, downloadPath)
+		speed := http3Downloader.DownloadStream(sdb, fullTrace, downloadPath)
 		logrus.Debugf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case TCP:
-		speed := tcp.DownloadStream(sdb, downloadPath)
+		speed := tcpDownloader.DownloadStream(sdb, fullTrace, downloadPath)
 		logrus.Debugf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case HTTP:
-		speed := http.DownloadStream(sdb, fullTrace, downloadPath)
+		speed := HttpDownloader.DownloadStream(sdb, fullTrace, downloadPath)
 		logrus.Debugf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	case ALL:
-		speed := quic.DownloadStream(sdb, fullTrace, downloadPath)
+		speed := http3Downloader.DownloadStream(sdb, fullTrace, downloadPath)
 		logrus.Debugf("QUIC protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
-		speed = tcp.DownloadStream(sdb, downloadPath)
+		speed = tcpDownloader.DownloadStream(sdb, fullTrace, downloadPath)
 		logrus.Debugf("TCP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
-		speed = http.DownloadStream(sdb, fullTrace, downloadPath)
+		speed = HttpDownloader.DownloadStream(sdb, fullTrace, downloadPath)
 		logrus.Debugf("HTTP protocol downloaded at an average of %.2f MiB/s", speed/1024/1024)
 	}
 	return sdb, nil
 }
 
-func DownloadAndBuild(sdHash string, fullTrace bool, mode Mode, fileName string, destinationPath string) error {
-	tmpDir := os.TempDir()
-	sdBlob, err := DownloadStream(sdHash, fullTrace, mode, tmpDir)
+func DownloadAndBuild(sdHash string, fullTrace bool, mode Mode, fileName string, destinationPath string, serverParams ServerParams) error {
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return errors.Err(err)
+	}
+
+	sdBlob, err := DownloadStream(sdHash, fullTrace, mode, tmpDir, serverParams)
 	if err != nil {
 		return err
 	}

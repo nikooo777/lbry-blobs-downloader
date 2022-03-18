@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/nikooo777/lbry-blobs-downloader/downloader"
-	"github.com/nikooo777/lbry-blobs-downloader/http"
-	"github.com/nikooo777/lbry-blobs-downloader/quic"
+	"github.com/nikooo777/lbry-blobs-downloader/protocols/http"
+	"github.com/nikooo777/lbry-blobs-downloader/protocols/http3"
+	"github.com/nikooo777/lbry-blobs-downloader/protocols/tcp"
 	"github.com/nikooo777/lbry-blobs-downloader/shared"
-	"github.com/nikooo777/lbry-blobs-downloader/tcp"
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 
@@ -53,17 +53,23 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
 }
 
 func blobsDownloader(cmd *cobra.Command, args []string) {
 	var err error
-	shared.ReflectorPeerServer = upstreamReflector + ":" + peerPort
-	shared.ReflectorQuicServer = upstreamReflector + ":" + quicPort
-	shared.ReflectorHttpServer = upstreamReflector + ":" + httpPort
-	logrus.Debugf("tcp server: %s", shared.ReflectorPeerServer)
-	logrus.Debugf("http3 server: %s", shared.ReflectorQuicServer)
-	logrus.Debugf("http server: %s", shared.ReflectorHttpServer)
+	serverParams := downloader.ServerParams{
+		TcpServerAddress:   shared.DefaultReflectorPeerServer,
+		TcpServerPort:      shared.DefaultReflectorPeerPort,
+		Http3ServerAddress: shared.DefaultReflectorQuicServer,
+		Http3ServerPort:    shared.DefaultReflectorQuicPort,
+		HttpServerAddress:  shared.DefaultReflectorHttpServer,
+		HttpServerPort:     shared.DefaultReflectorHttpPort,
+	}
+
+	tcpDownloader := tcp.NewTcpBlobDownloader(shared.DefaultReflectorPeerServer, shared.DefaultReflectorPeerPort)
+	http3Downloader := http3.NewHttp3BlobDownloader(shared.DefaultReflectorQuicServer, shared.DefaultReflectorQuicPort)
+	HttpDownloader := http.NewHttpBlobDownloader(shared.DefaultReflectorHttpServer, shared.DefaultReflectorHttpPort)
+
 	wg := &sync.WaitGroup{}
 	downloadPath := "./downloads"
 	for i := 0; i < concurrentThreads; i++ {
@@ -77,10 +83,10 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 					if err != nil {
 						panic(errors.FullTrace(err))
 					}
-					err = downloader.DownloadAndBuild(hash, fullTrace, downloader.Mode(mode), hash, builtDir)
+					err = downloader.DownloadAndBuild(hash, fullTrace, downloader.Mode(mode), hash, builtDir, serverParams)
 
 				} else {
-					_, err = downloader.DownloadStream(hash, fullTrace, downloader.Mode(mode), downloadPath)
+					_, err = downloader.DownloadStream(hash, fullTrace, downloader.Mode(mode), downloadPath, serverParams)
 				}
 				if err != nil {
 					logrus.Error(errors.FullTrace(err))
@@ -89,26 +95,26 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 			} else {
 				switch mode {
 				case 0:
-					_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
+					_, err = http3Downloader.DownloadBlob(hash, fullTrace, downloadPath)
 				case 1:
-					_, err = tcp.DownloadBlob(hash, downloadPath)
+					_, err = tcpDownloader.DownloadBlob(hash, fullTrace, downloadPath)
 				case 2:
-					_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
+					_, err = HttpDownloader.DownloadBlob(hash, fullTrace, downloadPath)
 				case 3:
 					logrus.Debugln("HTTP3 protocol:")
-					_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
+					_, err = http3Downloader.DownloadBlob(hash, fullTrace, downloadPath)
 					if err != nil {
 						logrus.Error(errors.FullTrace(err))
 						os.Exit(1)
 					}
 					logrus.Debugln("TCP protocol:")
-					_, err = tcp.DownloadBlob(hash, downloadPath)
+					_, err = tcpDownloader.DownloadBlob(hash, fullTrace, downloadPath)
 					if err != nil {
 						logrus.Error(errors.FullTrace(err))
 						os.Exit(1)
 					}
 					logrus.Debugln("HTTP protocol:")
-					_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
+					_, err = HttpDownloader.DownloadBlob(hash, fullTrace, downloadPath)
 					if err != nil {
 						logrus.Error(errors.FullTrace(err))
 						os.Exit(1)

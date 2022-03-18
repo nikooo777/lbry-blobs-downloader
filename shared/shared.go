@@ -6,9 +6,12 @@ import (
 	"github.com/lbryio/lbry.go/v2/stream"
 )
 
-var ReflectorPeerServer = "cdn.reflector.lbry.com:5567"
-var ReflectorQuicServer = "cdn.reflector.lbry.com:5568"
-var ReflectorHttpServer = "cdn.reflector.lbry.com:5569"
+var DefaultReflectorPeerServer = "cdn.reflector.lbry.com"
+var DefaultReflectorPeerPort = "5567"
+var DefaultReflectorQuicServer = "cdn.reflector.lbry.com"
+var DefaultReflectorQuicPort = "5568"
+var DefaultReflectorHttpServer = "cdn.reflector.lbry.com"
+var DefaultReflectorHttpPort = "5569"
 
 func GetStreamHashes(blob *stream.SDBlob) []string {
 	blobs := make([]string, 0, len(blob.BlobInfos))

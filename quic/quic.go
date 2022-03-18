@@ -3,7 +3,6 @@ package quic
 import (
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -16,24 +15,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blob, error) {
+func DownloadBlob(hash string, fullTrace bool) (*stream.Blob, error) {
 	bStore := GetQuicBlobStore()
 	start := time.Now()
 	blob, trace, err := bStore.Get(hash)
-	if fullTrace {
-		logrus.Debugln(trace.String())
-	}
 	if err != nil {
 		err = errors.Prefix(hash, err)
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
-	logrus.Debugf("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = os.MkdirAll(downloadPath, os.ModePerm)
+	if fullTrace || trace.Stacks[0].HostName == "reflector" {
+		logrus.Infoln(trace.String())
+	}
+	logrus.Infof("[Q] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
+	err = os.MkdirAll("./downloads", os.ModePerm)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	err = ioutil.WriteFile(path.Join(downloadPath, hash), blob, 0644)
+	err = ioutil.WriteFile("./downloads/"+hash, blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
@@ -45,27 +44,27 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blo
 // GetQuicBlobStore returns default pre-configured blob store.
 func GetQuicBlobStore() *http3.Store {
 	return http3.NewStore(http3.StoreOpts{
-		Address: shared.ReflectorQuicServer,
+		Address: shared.DefaultReflectorQuicServer,
 		Timeout: 60 * time.Second,
 	})
 }
 
-//DownloadStream downloads a stream and returns the speed in bytes per second
-func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) float64 {
+// DownloadStream downloads a stream and returns the speed in bytes per second
+func DownloadStream(blob *stream.SDBlob, fullTrace bool) float64 {
 	hashes := shared.GetStreamHashes(blob)
 	totalSize := 0
 	milliseconds := int64(0)
 	for _, hash := range hashes {
-		logrus.Debugln(hash)
+		logrus.Info(hash)
 		begin := time.Now()
 		var b *stream.Blob
 		var err error
 		for {
-			b, err = DownloadBlob(hash, fullTrace, downloadPath)
+			b, err = DownloadBlob(hash, fullTrace)
 			milliseconds += time.Since(begin).Milliseconds()
 			if err != nil {
 				if strings.Contains(err.Error(), "No recent network activity") {
-					logrus.Debugln("failed to download blob in time. retrying...")
+					logrus.Infoln("failed to download blob in time. retrying...")
 				} else {
 					logrus.Error(errors.FullTrace(err))
 					return 0

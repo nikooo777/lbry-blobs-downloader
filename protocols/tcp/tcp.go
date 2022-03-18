@@ -3,6 +3,7 @@ package tcp
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"time"
 
 	"github.com/nikooo777/lbry-blobs-downloader/shared"
@@ -10,13 +11,30 @@ import (
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
 	"github.com/lbryio/reflector.go/server/peer"
-	"github.com/lbryio/reflector.go/store"
 
 	"github.com/sirupsen/logrus"
 )
 
-func DownloadBlob(hash string) (*stream.Blob, error) {
-	bStore := GetTcpBlobStore()
+type TcpStore struct {
+	server string
+	port   string
+	store  *peer.Store
+}
+
+func NewTcpBlobDownloader(server, port string) *TcpStore {
+	newStore := &TcpStore{
+		server: server,
+		port:   port,
+		store: peer.NewStore(peer.StoreOpts{
+			Address: server + ":" + port,
+			Timeout: 30 * time.Second,
+		}),
+	}
+	return newStore
+}
+
+func (s *TcpStore) DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blob, error) {
+	bStore := s.store
 	start := time.Now()
 	blob, _, err := bStore.Get(hash)
 	if err != nil {
@@ -24,12 +42,12 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 		return nil, errors.Err(err)
 	}
 	elapsed := time.Since(start)
-	logrus.Infof("[T] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = os.MkdirAll("./downloads", os.ModePerm)
+	logrus.Debugf("[T] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
+	err = os.MkdirAll(downloadPath, os.ModePerm)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	err = ioutil.WriteFile("./downloads/"+hash, blob, 0644)
+	err = ioutil.WriteFile(path.Join(downloadPath, hash), blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
@@ -38,23 +56,15 @@ func DownloadBlob(hash string) (*stream.Blob, error) {
 	return &blob, nil
 }
 
-// GetQuicBlobStore returns default pre-configured blob store.
-func GetTcpBlobStore() store.BlobStore {
-	return peer.NewStore(peer.StoreOpts{
-		Address: shared.DefaultReflectorPeerServer,
-		Timeout: 30 * time.Second,
-	})
-}
-
-// downloads a stream and returns the speed in bytes per second
-func DownloadStream(blob *stream.SDBlob) float64 {
+// DownloadStream downloads a stream and returns the speed in bytes per second
+func (s *TcpStore) DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) float64 {
 	hashes := shared.GetStreamHashes(blob)
 	totalSize := 0
 	milliseconds := int64(0)
 	for _, hash := range hashes {
-		logrus.Info(hash)
+		logrus.Debugln(hash)
 		begin := time.Now()
-		b, err := DownloadBlob(hash)
+		b, err := s.DownloadBlob(hash, fullTrace, downloadPath)
 		milliseconds += time.Since(begin).Milliseconds()
 		if err != nil {
 			logrus.Error(errors.FullTrace(err))
