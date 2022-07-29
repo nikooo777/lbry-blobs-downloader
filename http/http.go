@@ -43,7 +43,7 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blo
 
 // GetHttpBlobStore returns default pre-configured blob store.
 func GetHttpBlobStore() *store.HttpStore {
-	return store.NewHttpStore(shared.ReflectorHttpServer)
+	return store.NewHttpStore(shared.ReflectorHttpServer, "")
 }
 
 //DownloadStream downloads a stream and returns the speed in bytes per second
