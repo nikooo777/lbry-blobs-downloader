@@ -3,7 +3,7 @@ module github.com/nikooo777/lbry-blobs-downloader
 go 1.17
 
 require (
-	github.com/lbryio/lbry.go/v2 v2.7.2-0.20220321182539-d0aeb0c22b22
+	github.com/lbryio/lbry.go/v2 v2.7.2-0.20220815204100-2adb8af5b68c
 	github.com/lbryio/reflector.go v1.1.3-0.20220730181028-f5d30b1a6e79
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
@@ -28,7 +28,6 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -46,7 +45,7 @@ require (
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.0-beta.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/mitchellh/mapstructure v1.1.2 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/pelletier/go-toml v1.2.0 // indirect
@@ -56,7 +55,7 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
-	github.com/shopspring/decimal v0.0.0-20191009025716-f1972eb1d1f5 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/afero v1.4.1 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.0.0 // indirect
