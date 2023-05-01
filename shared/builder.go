@@ -3,7 +3,6 @@ package shared
 import (
 	"bufio"
 	"encoding/hex"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -26,7 +25,7 @@ func BuildStream(sdBlob *stream.SDBlob, fileName string, destinationPath string,
 		}
 		hash := hex.EncodeToString(info.BlobHash)
 		blobPath := path.Join(blobsDirectory, hash)
-		blobToDecrypt, err := ioutil.ReadFile(blobPath)
+		blobToDecrypt, err := os.ReadFile(blobPath)
 		_ = os.Remove(blobPath) //we don't need the blob anymore
 		if err != nil {
 			return errors.Err(err)

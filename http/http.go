@@ -1,10 +1,11 @@
 package http
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nikooo777/lbry-blobs-downloader/shared"
@@ -33,7 +34,7 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blo
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	err = ioutil.WriteFile(path.Join(downloadPath, hash), blob, 0644)
+	err = os.WriteFile(path.Join(downloadPath, hash), blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
@@ -47,31 +48,46 @@ func GetHttpBlobStore() *store.HttpStore {
 	return store.NewHttpStore(shared.ReflectorHttpServer, shared.EdgeToken)
 }
 
-//DownloadStream downloads a stream and returns the speed in bytes per second
+// DownloadStream downloads a stream and returns the speed in bytes per second
 func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) float64 {
 	hashes := shared.GetStreamHashes(blob)
 	totalSize := 0
 	milliseconds := int64(0)
+	numCPU := runtime.NumCPU()
+
+	var wg sync.WaitGroup
+	ch := make(chan string, numCPU)
+
 	for _, hash := range hashes {
-		logrus.Debugln(hash)
-		begin := time.Now()
-		var b *stream.Blob
-		var err error
-		for {
-			b, err = DownloadBlob(hash, fullTrace, downloadPath)
-			milliseconds += time.Since(begin).Milliseconds()
-			if err != nil {
-				if strings.Contains(err.Error(), "No recent network activity") {
-					logrus.Debugln("failed to download blob in time. retrying...")
+		wg.Add(1)
+		ch <- hash
+		go func(hash string) {
+			defer wg.Done()
+			logrus.Debugln(hash)
+			begin := time.Now()
+			var b *stream.Blob
+			var err error
+			for {
+				b, err = DownloadBlob(hash, fullTrace, downloadPath)
+				milliseconds += time.Since(begin).Milliseconds()
+				if err != nil {
+					if strings.Contains(err.Error(), "No recent network activity") {
+						logrus.Debugln("failed to download blob in time. retrying...")
+					} else {
+						logrus.Error(errors.FullTrace(err))
+						return
+					}
 				} else {
-					logrus.Error(errors.FullTrace(err))
-					return 0
+					break
 				}
-			} else {
-				break
 			}
-		}
-		totalSize += b.Size()
+			totalSize += b.Size()
+			<-ch
+		}(hash)
 	}
+
+	wg.Wait()
+	close(ch)
+
 	return float64(totalSize) / (float64(milliseconds) / 1000.0)
 }
