@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"sync"
+	"runtime"
 
 	"github.com/nikooo777/lbry-blobs-downloader/downloader"
 	"github.com/nikooo777/lbry-blobs-downloader/http"
@@ -43,7 +43,7 @@ func main() {
 	cmd.Flags().StringVar(&quicPort, "http3-port", "5568", "the port reflector listens to for HTTP3 peer connections")
 	cmd.Flags().StringVar(&httpPort, "http-port", "5569", "the port reflector listens to for HTTP connections")
 	cmd.Flags().BoolVar(&isStream, "stream", false, "whether the hash is for a stream or not (download whole file)")
-	cmd.Flags().IntVar(&concurrentThreads, "concurrent-threads", 1, "Number of concurrent downloads to run")
+	cmd.Flags().IntVar(&concurrentThreads, "concurrent-threads", runtime.NumCPU(), "Number of concurrent downloads to run")
 	cmd.Flags().IntVar(&mode, "mode", 0, "0: HTTP3, 1: TCP (LBRY), 2: HTTP, 3: use all")
 	cmd.Flags().BoolVar(&fullTrace, "trace", false, "print all traces")
 	cmd.Flags().BoolVar(&build, "build", false, "build the file from the blobs")
@@ -64,62 +64,54 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 	logrus.Debugf("tcp server: %s", shared.ReflectorPeerServer)
 	logrus.Debugf("http3 server: %s", shared.ReflectorQuicServer)
 	logrus.Debugf("http server: %s", shared.ReflectorHttpServer)
-	wg := &sync.WaitGroup{}
 	downloadPath := "./downloads"
-	for i := 0; i < concurrentThreads; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if isStream {
-				if build {
-					builtDir := "./built_downloads/"
-					err = os.MkdirAll(builtDir, os.ModePerm)
-					if err != nil {
-						panic(errors.FullTrace(err))
-					}
-					err = downloader.DownloadAndBuild(hash, fullTrace, downloader.Mode(mode), hash, builtDir)
-
-				} else {
-					_, err = downloader.DownloadStream(hash, fullTrace, downloader.Mode(mode), downloadPath)
-				}
-				if err != nil {
-					logrus.Error(errors.FullTrace(err))
-					os.Exit(1)
-				}
-			} else {
-				switch mode {
-				case 0:
-					_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
-				case 1:
-					_, err = tcp.DownloadBlob(hash, downloadPath)
-				case 2:
-					_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
-				case 3:
-					logrus.Debugln("HTTP3 protocol:")
-					_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
-					if err != nil {
-						logrus.Error(errors.FullTrace(err))
-						os.Exit(1)
-					}
-					logrus.Debugln("TCP protocol:")
-					_, err = tcp.DownloadBlob(hash, downloadPath)
-					if err != nil {
-						logrus.Error(errors.FullTrace(err))
-						os.Exit(1)
-					}
-					logrus.Debugln("HTTP protocol:")
-					_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
-					if err != nil {
-						logrus.Error(errors.FullTrace(err))
-						os.Exit(1)
-					}
-				}
-				if err != nil {
-					logrus.Error(errors.FullTrace(err))
-					os.Exit(1)
-				}
+	if isStream {
+		if build {
+			builtDir := "./built_downloads/"
+			err = os.MkdirAll(builtDir, os.ModePerm)
+			if err != nil {
+				panic(errors.FullTrace(err))
 			}
-		}()
+			err = downloader.DownloadAndBuild(hash, fullTrace, downloader.Mode(mode), hash, builtDir, concurrentThreads)
+
+		} else {
+			_, err = downloader.DownloadStream(hash, fullTrace, downloader.Mode(mode), downloadPath, concurrentThreads)
+		}
+		if err != nil {
+			logrus.Error(errors.FullTrace(err))
+			os.Exit(1)
+		}
+	} else {
+		switch mode {
+		case 0:
+			_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
+		case 1:
+			_, err = tcp.DownloadBlob(hash, downloadPath)
+		case 2:
+			_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
+		case 3:
+			logrus.Debugln("HTTP3 protocol:")
+			_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
+			if err != nil {
+				logrus.Error(errors.FullTrace(err))
+				os.Exit(1)
+			}
+			logrus.Debugln("TCP protocol:")
+			_, err = tcp.DownloadBlob(hash, downloadPath)
+			if err != nil {
+				logrus.Error(errors.FullTrace(err))
+				os.Exit(1)
+			}
+			logrus.Debugln("HTTP protocol:")
+			_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
+			if err != nil {
+				logrus.Error(errors.FullTrace(err))
+				os.Exit(1)
+			}
+		}
+		if err != nil {
+			logrus.Error(errors.FullTrace(err))
+			os.Exit(1)
+		}
 	}
-	wg.Wait()
 }

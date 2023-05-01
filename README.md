@@ -9,7 +9,7 @@ Usage:
 
 Flags:
       --build                       build the file from the blobs
-      --concurrent-threads int      Number of concurrent downloads to run (default 1)
+      --concurrent-threads int      Number of concurrent downloads to run (default 16)
       --hash string                 hash of the blob or sdblob (default "c333e168b1adb5b8971af26ca2c882e60e7a908167fa9582b47a044f896484485df9f5a0ada7ef6dc976489301e8049d")
   -h, --help                        help for blobsdownloader
       --http-port string            the port reflector listens to for HTTP connections (default "5569")
@@ -58,7 +58,7 @@ INFO[0023] HTTP protocol downloaded at an average of 1.16 MiB/s
 Then see [example](example/example.go)
 
 # Building
-1) Install GO 1.16+ (on ubuntu it's `sudo snap install go --classic`)
+1) Install GO 1.19+ (on ubuntu it's `sudo snap install go --classic`)
 2) run `make`
 3) ???
 4) profit

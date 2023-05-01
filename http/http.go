@@ -3,9 +3,9 @@ package http
 import (
 	"os"
 	"path"
-	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/nikooo777/lbry-blobs-downloader/shared"
@@ -49,14 +49,14 @@ func GetHttpBlobStore() *store.HttpStore {
 }
 
 // DownloadStream downloads a stream and returns the speed in bytes per second
-func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) float64 {
+func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string, threads int) float64 {
 	hashes := shared.GetStreamHashes(blob)
-	totalSize := 0
+	totalSize := int64(0)
 	milliseconds := int64(0)
-	numCPU := runtime.NumCPU()
+	maxThreads := threads
 
 	var wg sync.WaitGroup
-	ch := make(chan string, numCPU)
+	ch := make(chan string, maxThreads)
 
 	for _, hash := range hashes {
 		wg.Add(1)
@@ -69,7 +69,7 @@ func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) fl
 			var err error
 			for {
 				b, err = DownloadBlob(hash, fullTrace, downloadPath)
-				milliseconds += time.Since(begin).Milliseconds()
+				atomic.AddInt64(&milliseconds, time.Since(begin).Milliseconds())
 				if err != nil {
 					if strings.Contains(err.Error(), "No recent network activity") {
 						logrus.Debugln("failed to download blob in time. retrying...")
@@ -81,7 +81,7 @@ func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string) fl
 					break
 				}
 			}
-			totalSize += b.Size()
+			atomic.AddInt64(&totalSize, int64(b.Size()))
 			<-ch
 		}(hash)
 	}

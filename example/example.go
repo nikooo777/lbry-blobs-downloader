@@ -3,6 +3,7 @@ package example
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/nikooo777/lbry-blobs-downloader/downloader"
 	"github.com/nikooo777/lbry-blobs-downloader/shared"
@@ -25,7 +26,7 @@ func MySoftware() {
 	if err != nil {
 		panic(err)
 	}
-	err = downloader.DownloadAndBuild(sdHash, false, downloader.HTTP, "jeremy.mp4", "./mypersonaldownloads/")
+	err = downloader.DownloadAndBuild(sdHash, false, downloader.HTTP, "jeremy.mp4", "./mypersonaldownloads/", runtime.NumCPU())
 	if err != nil {
 		panic(err)
 	}
