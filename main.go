@@ -99,7 +99,7 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 		case 1:
 			_, err = tcp.DownloadBlob(hash, downloadPath)
 		case 2:
-			_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
+			_, err = http.DownloadBlob(hash, fullTrace, &downloadPath)
 		case 3:
 			logrus.Debugln("HTTP3 protocol:")
 			_, err = quic.DownloadBlob(hash, fullTrace, downloadPath)
@@ -114,7 +114,7 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 			logrus.Debugln("HTTP protocol:")
-			_, err = http.DownloadBlob(hash, fullTrace, downloadPath)
+			_, err = http.DownloadBlob(hash, fullTrace, &downloadPath)
 			if err != nil {
 				logrus.Error(errors.FullTrace(err))
 				os.Exit(1)

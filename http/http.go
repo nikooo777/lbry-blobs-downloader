@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blob, error) {
+func DownloadBlob(hash string, fullTrace bool, downloadPath *string) (*stream.Blob, error) {
 	bStore := GetHttpBlobStore()
 	start := time.Now()
 	blob, trace, err := bStore.Get(hash)
@@ -30,13 +30,16 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blo
 	}
 	elapsed := time.Since(start)
 	logrus.Debugf("[H] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
-	err = os.MkdirAll(downloadPath, os.ModePerm)
-	if err != nil {
-		return nil, errors.Err(err)
-	}
-	err = os.WriteFile(path.Join(downloadPath, hash), blob, 0644)
-	if err != nil {
-		return nil, errors.Err(err)
+	if downloadPath != nil {
+
+		err = os.MkdirAll(*downloadPath, os.ModePerm)
+		if err != nil {
+			return nil, errors.Err(err)
+		}
+		err = os.WriteFile(path.Join(*downloadPath, hash), blob, 0644)
+		if err != nil {
+			return nil, errors.Err(err)
+		}
 	}
 	elapsed = time.Since(start) - elapsed
 	return &blob, nil
@@ -68,7 +71,7 @@ func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string, th
 			var b *stream.Blob
 			var err error
 			for {
-				b, err = DownloadBlob(hash, fullTrace, downloadPath)
+				b, err = DownloadBlob(hash, fullTrace, &downloadPath)
 				atomic.AddInt64(&milliseconds, time.Since(begin).Milliseconds())
 				if err != nil {
 					if strings.Contains(err.Error(), "No recent network activity") {

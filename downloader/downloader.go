@@ -30,7 +30,7 @@ func DownloadStream(sdHash string, fullTrace bool, mode Mode, downloadPath strin
 	case TCP:
 		blob, err = tcp.DownloadBlob(sdHash, downloadPath)
 	case HTTP, ALL:
-		blob, err = http.DownloadBlob(sdHash, fullTrace, downloadPath)
+		blob, err = http.DownloadBlob(sdHash, fullTrace, &downloadPath)
 	}
 	if err != nil {
 		return nil, err
