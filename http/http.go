@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -17,6 +19,52 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DownloadStream downloads a stream, returns the speed in bytes per second
+// or halts and returns the first download error encountered.
+func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string, threads int) (float64, error) {
+	hashes := shared.GetStreamHashes(blob)
+	totalSize := int64(0)
+	milliseconds := int64(0)
+	maxThreads := threads
+
+	var wg sync.WaitGroup
+	ch := make(chan string, maxThreads)
+	errChan := make(chan error, len(hashes))
+
+	for _, hash := range hashes {
+		wg.Add(1)
+
+		ch <- hash
+		go func(hash string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			defer wg.Done()
+			defer func() { <-ch }()
+
+			logrus.Debugln(hash)
+			begin := time.Now()
+			blob, err := downloadBlobWithRetry(ctx, hash, fullTrace, &downloadPath)
+			if err != nil {
+				errChan <- fmt.Errorf("failed to download blob: %w", err)
+				return
+			}
+			atomic.AddInt64(&milliseconds, time.Since(begin).Milliseconds())
+			atomic.AddInt64(&totalSize, int64(blob.Size()))
+		}(hash)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	for err := range errChan {
+		return float64(totalSize) / (float64(milliseconds) / 1000.0), err
+	}
+
+	return float64(totalSize) / (float64(milliseconds) / 1000.0), nil
+}
+
 func DownloadBlob(hash string, fullTrace bool, downloadPath *string) (*stream.Blob, error) {
 	bStore := GetHttpBlobStore()
 	start := time.Now()
@@ -31,7 +79,6 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath *string) (*stream.Bl
 	elapsed := time.Since(start)
 	logrus.Debugf("[H] download time: %d ms\tSpeed: %.2f MB/s", elapsed.Milliseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	if downloadPath != nil {
-
 		err = os.MkdirAll(*downloadPath, os.ModePerm)
 		if err != nil {
 			return nil, errors.Err(err)
@@ -46,51 +93,32 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath *string) (*stream.Bl
 }
 
 // GetHttpBlobStore returns default pre-configured blob store.
-// edgeToken can be set to bypass restrictions for protected content
+// EdgeToken can be set to bypass restrictions for protected content.
 func GetHttpBlobStore() *store.HttpStore {
 	return store.NewHttpStore(shared.ReflectorHttpServer, shared.EdgeToken)
 }
 
-// DownloadStream downloads a stream and returns the speed in bytes per second
-func DownloadStream(blob *stream.SDBlob, fullTrace bool, downloadPath string, threads int) float64 {
-	hashes := shared.GetStreamHashes(blob)
-	totalSize := int64(0)
-	milliseconds := int64(0)
-	maxThreads := threads
-
-	var wg sync.WaitGroup
-	ch := make(chan string, maxThreads)
-
-	for _, hash := range hashes {
-		wg.Add(1)
-		ch <- hash
-		go func(hash string) {
-			defer wg.Done()
-			logrus.Debugln(hash)
-			begin := time.Now()
-			var b *stream.Blob
-			var err error
-			for {
-				b, err = DownloadBlob(hash, fullTrace, &downloadPath)
-				atomic.AddInt64(&milliseconds, time.Since(begin).Milliseconds())
-				if err != nil {
-					if strings.Contains(err.Error(), "No recent network activity") {
-						logrus.Debugln("failed to download blob in time. retrying...")
-					} else {
-						logrus.Error(errors.FullTrace(err))
-						return
-					}
+func downloadBlobWithRetry(ctx context.Context, hash string, fullTrace bool, path *string) (*stream.Blob, error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			blob, err := DownloadBlob(hash, fullTrace, path)
+			if err != nil {
+				if isRetriable(err) {
+					logrus.Debugln("failed to download blob in time. retrying...")
 				} else {
-					break
+					logrus.Error(errors.FullTrace(err))
+					return nil, err
 				}
+			} else {
+				return blob, nil
 			}
-			atomic.AddInt64(&totalSize, int64(b.Size()))
-			<-ch
-		}(hash)
+		}
 	}
+}
 
-	wg.Wait()
-	close(ch)
-
-	return float64(totalSize) / (float64(milliseconds) / 1000.0)
+func isRetriable(err error) bool {
+	return strings.Contains(err.Error(), "No recent network activity")
 }
