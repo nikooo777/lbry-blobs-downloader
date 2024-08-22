@@ -22,4 +22,10 @@ func TestGetChannelStreams(t *testing.T) {
 	streams, err := GetChannelStreams("80d2590ad04e36fb1d077a9b9e3a8bba76defdf8")
 	assert.Nil(t, err)
 	assert.Greater(t, len(streams), 10)
+
+}
+func TestGetThumbnail(t *testing.T) {
+	thumbnail, err := GetClaimThumbnail("4b8f25e74ea0faff844feb6b9c60a204c59fef90")
+	assert.Nil(t, err)
+	assert.Equal(t, thumbnail, "https://thumbnails.lbry.com/vQR7Ve846qY")
 }

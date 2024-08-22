@@ -163,3 +163,54 @@ func GetChannelStreams(channelClaimId string) ([]stream, error) {
 
 	return cQResp.Data, nil
 }
+
+type thumbnailResponse struct {
+	ThumbnailUrl string `json:"thumbnail_url"`
+}
+
+func GetClaimThumbnail(claimId string) (string, error) {
+	query := url.QueryEscape(fmt.Sprintf("select thumbnail_url from claim where claim_id='%s'", claimId))
+	url := fmt.Sprintf("https://chainquery.odysee.tv/api/sql?query=%s", query)
+	method := "GET"
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return "", errors.Err(err)
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", errors.Err(err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.Err("Failed to get thumbnail")
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", errors.Err(err)
+	}
+
+	type cQResponse struct {
+		Success bool                `json:"success"`
+		Error   interface{}         `json:"error"`
+		Data    []thumbnailResponse `json:"data"`
+	}
+	var cQResp cQResponse
+	err = json.Unmarshal(body, &cQResp)
+	if err != nil {
+		return "", errors.Err(err)
+	}
+
+	if !cQResp.Success {
+		return "", errors.Err("Failed to get sd hash")
+	}
+
+	if len(cQResp.Data) == 0 {
+		return "", errors.Err("No data returned")
+	}
+
+	return cQResp.Data[0].ThumbnailUrl, nil
+}
