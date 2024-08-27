@@ -27,5 +27,12 @@ func TestGetChannelStreams(t *testing.T) {
 func TestGetThumbnail(t *testing.T) {
 	thumbnail, err := GetClaimThumbnail("4b8f25e74ea0faff844feb6b9c60a204c59fef90")
 	assert.Nil(t, err)
-	assert.Equal(t, thumbnail, "https://thumbnails.lbry.com/vQR7Ve846qY")
+	assert.Equal(t, "https://thumbnails.lbry.com/vQR7Ve846qY", thumbnail)
+}
+
+func TestGetClaimMetadata(t *testing.T) {
+	metadata, err := GetClaimMetadata("b08407f855ff14ff201961178eb2d86ec3bf5e9a")
+	assert.Nil(t, err)
+	assert.NotNil(t, metadata.Author)
+	assert.Equal(t, "voidwalker thumbnails", *metadata.Author)
 }
