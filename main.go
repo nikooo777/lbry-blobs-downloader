@@ -20,6 +20,7 @@ import (
 
 var (
 	hash              string
+	claimId           string
 	upstreamReflector string
 	peerPort          string
 	quicPort          string
@@ -39,7 +40,8 @@ func main() {
 		Run:   blobsDownloader,
 		Args:  cobra.RangeArgs(0, 0),
 	}
-	cmd.Flags().StringVar(&hash, "hash", "c333e168b1adb5b8971af26ca2c882e60e7a908167fa9582b47a044f896484485df9f5a0ada7ef6dc976489301e8049d", "hash of the blob or sdblob")
+	cmd.Flags().StringVar(&hash, "hash", "", "hash of the blob or sdblob")
+	cmd.Flags().StringVar(&claimId, "claim_id", "", "claim id of the stream (excludes --hash and forces --stream)")
 	cmd.Flags().StringVar(&upstreamReflector, "upstream-reflector", "blobcache-eu.odycdn.com", "the address of the reflector server (without port)")
 	cmd.Flags().StringVar(&peerPort, "peer-port", "5567", "the port reflector listens to for TCP peer connections")
 	cmd.Flags().StringVar(&quicPort, "http3-port", "5568", "the port reflector listens to for HTTP3 peer connections")
@@ -68,6 +70,16 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 	logrus.Debugf("http3 server: %s", shared.ReflectorQuicServer)
 	logrus.Debugf("http server: %s", shared.ReflectorHttpServer)
 	downloadPath := "./downloads"
+	if claimId != "" {
+		isStream = true
+		hash, err = chainquery.GetSdHash(claimId)
+		if err != nil {
+			logrus.Panicf("could not get sdhash for claim id %s: %s", claimId, err.Error())
+		}
+	} else if hash == "" {
+		logrus.Error("no hash or claim id provided")
+		os.Exit(1)
+	}
 	if isStream {
 		if build {
 			builtDir := "./built_downloads/"
