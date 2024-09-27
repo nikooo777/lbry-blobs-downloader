@@ -70,8 +70,10 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 	logrus.Debugf("http3 server: %s", shared.ReflectorQuicServer)
 	logrus.Debugf("http server: %s", shared.ReflectorHttpServer)
 	downloadPath := "./downloads"
+	fileName := hash
 	if claimId != "" {
 		isStream = true
+		fileName = claimId
 		hash, err = chainquery.GetSdHash(claimId)
 		if err != nil {
 			logrus.Panicf("could not get sdhash for claim id %s: %s", claimId, err.Error())
@@ -87,7 +89,7 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 			if err != nil {
 				panic(errors.FullTrace(err))
 			}
-			fileName := hash
+
 			if rename {
 				name, err := chainquery.GetOriginalName(hash)
 				if err == nil {
