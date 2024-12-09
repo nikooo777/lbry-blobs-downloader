@@ -31,6 +31,7 @@ var (
 	fullTrace         bool
 	build             bool
 	rename            bool
+	token             string
 )
 
 func main() {
@@ -52,6 +53,7 @@ func main() {
 	cmd.Flags().BoolVar(&fullTrace, "trace", false, "print all traces")
 	cmd.Flags().BoolVar(&build, "build", false, "build the file from the blobs")
 	cmd.Flags().BoolVar(&rename, "rename", false, "attempt renaming the downloaded file to its original name")
+	cmd.Flags().StringVar(&token, "token", "", "token to use for protected content")
 
 	logrus.SetLevel(logrus.DebugLevel)
 	if err := cmd.Execute(); err != nil {
@@ -66,6 +68,7 @@ func blobsDownloader(cmd *cobra.Command, args []string) {
 	shared.ReflectorPeerServer = upstreamReflector + ":" + peerPort
 	shared.ReflectorQuicServer = upstreamReflector + ":" + quicPort
 	shared.ReflectorHttpServer = upstreamReflector + ":" + httpPort
+	shared.EdgeToken = token
 	logrus.Debugf("tcp server: %s", shared.ReflectorPeerServer)
 	logrus.Debugf("http3 server: %s", shared.ReflectorQuicServer)
 	logrus.Debugf("http server: %s", shared.ReflectorHttpServer)

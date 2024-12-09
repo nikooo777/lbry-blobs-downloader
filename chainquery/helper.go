@@ -63,7 +63,7 @@ func GetOriginalName(sdHash string) (string, error) {
 }
 
 func GetSdHash(claimId string) (string, error) {
-	url := fmt.Sprintf("https://chainquery.odysee.tv/api/sql?query=select%%20sd_hash%%20from%%20claim%%20where%%20claim_id%%20=%%20%%27%s%%27", claimId)
+	url := fmt.Sprintf("https://chainquery.odysee.tv/api/sql?query=select%%20sd_hash%%20from%%20claim%%20where%%20claim_id=%%27%s%%27", claimId)
 	method := "GET"
 
 	client := &http.Client{}
