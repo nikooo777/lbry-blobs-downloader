@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test -v -cover ./...
+
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.7.2
+
+  release:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Get version info
+        id: version
+        run: |
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          COMMIT_DATE=$(git log -1 --format=%cd --date=format:%Y%m%d)
+          echo "version=${COMMIT_DATE}-${COMMIT_SHORT}" >> $GITHUB_OUTPUT
+          echo "commit_short=${COMMIT_SHORT}" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          LDFLAGS="-X github.com/nikooo777/lbry-blobs-downloader/meta.Version=${VERSION} -X github.com/nikooo777/lbry-blobs-downloader/meta.Time=$(date +%s)"
+
+          mkdir -p dist
+
+          # Linux amd64
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/blobsdownloader-linux-amd64 main.go
+
+          # Linux arm64
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/blobsdownloader-linux-arm64 main.go
+
+          # Darwin amd64
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/blobsdownloader-darwin-amd64 main.go
+
+          # Darwin arm64
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o dist/blobsdownloader-darwin-arm64 main.go
+
+          # Windows amd64
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o dist/blobsdownloader-windows-amd64.exe main.go
+
+      - name: Delete existing release
+        run: gh release delete ${{ steps.version.outputs.version }} --yes || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        run: |
+          gh release create ${{ steps.version.outputs.version }} \
+            --title "Build ${{ steps.version.outputs.version }}" \
+            --notes "Automated build from commit ${{ steps.version.outputs.commit_short }}" \
+            --latest \
+            dist/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

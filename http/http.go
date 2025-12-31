@@ -88,14 +88,16 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath *string) (*stream.Bl
 			return nil, errors.Err(err)
 		}
 	}
-	elapsed = time.Since(start) - elapsed
 	return &blob, nil
 }
 
 // GetHttpBlobStore returns default pre-configured blob store.
 // EdgeToken can be set to bypass restrictions for protected content.
-func GetHttpBlobStore() *store.HttpStore {
-	return store.NewHttpStore(shared.ReflectorHttpServer, shared.EdgeToken)
+func GetHttpBlobStore() *store.UpstreamStore {
+	return store.NewUpstreamStore(store.UpstreamParams{
+		Upstream:  "http://" + shared.ReflectorHttpServer,
+		EdgeToken: shared.EdgeToken,
+	})
 }
 
 func downloadBlobWithRetry(ctx context.Context, hash string, fullTrace bool, path *string) (*stream.Blob, error) {

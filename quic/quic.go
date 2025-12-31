@@ -1,7 +1,6 @@
 package quic
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -11,7 +10,7 @@ import (
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
-	"github.com/lbryio/reflector.go/server/http3"
+	"github.com/lbryio/reflector.go/store"
 
 	"github.com/sirupsen/logrus"
 )
@@ -33,18 +32,16 @@ func DownloadBlob(hash string, fullTrace bool, downloadPath string) (*stream.Blo
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	err = ioutil.WriteFile(path.Join(downloadPath, hash), blob, 0644)
+	err = os.WriteFile(path.Join(downloadPath, hash), blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	elapsed = time.Since(start) - elapsed
-	//logrus.Infof("save time: %d us\tSpeed: %.2f MB/s", elapsed.Microseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	return &blob, nil
 }
 
 // GetQuicBlobStore returns default pre-configured blob store.
-func GetQuicBlobStore() *http3.Store {
-	return http3.NewStore(http3.StoreOpts{
+func GetQuicBlobStore() *store.Http3Store {
+	return store.NewHttp3Store(store.Http3Params{
 		Address: shared.ReflectorQuicServer,
 		Timeout: 60 * time.Second,
 	})

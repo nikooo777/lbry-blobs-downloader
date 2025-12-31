@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/lbryio/lbry.go/v2/extras/errors"
 	"github.com/lbryio/lbry.go/v2/stream"
-	"github.com/lbryio/reflector.go/server/peer"
 	"github.com/lbryio/reflector.go/store"
 
 	"github.com/sirupsen/logrus"
@@ -30,18 +28,16 @@ func DownloadBlob(hash, downloadPath string) (*stream.Blob, error) {
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	err = ioutil.WriteFile(path.Join(downloadPath, hash), blob, 0644)
+	err = os.WriteFile(path.Join(downloadPath, hash), blob, 0644)
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	elapsed = time.Since(start) - elapsed
-	//logrus.Infof("save time: %d us\tSpeed: %.2f MB/s", elapsed.Microseconds(), (float64(len(blob))/(1024*1024))/elapsed.Seconds())
 	return &blob, nil
 }
 
 // GetTcpBlobStore returns default pre-configured blob store.
-func GetTcpBlobStore() store.BlobStore {
-	return peer.NewStore(peer.StoreOpts{
+func GetTcpBlobStore() *store.PeerStore {
+	return store.NewPeerStore(store.PeerParams{
 		Address: shared.ReflectorPeerServer,
 		Timeout: 30 * time.Second,
 	})

@@ -1,5 +1,9 @@
 # lbry-blobs-downloader
 
+[![CI](https://github.com/nikooo777/lbry-blobs-downloader/actions/workflows/ci.yml/badge.svg)](https://github.com/nikooo777/lbry-blobs-downloader/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/nikooo777/lbry-blobs-downloader)](https://go.dev/)
+[![Release](https://img.shields.io/github/v/release/nikooo777/lbry-blobs-downloader)](https://github.com/nikooo777/lbry-blobs-downloader/releases/latest)
+
 # Usage
 ```
 download blobs or streams from reflector.
@@ -10,7 +14,7 @@ Usage:
 Flags:
       --build                       build the file from the blobs
       --claim_id string             claim id of the stream (excludes --hash and forces --stream)
-      --concurrent-threads int      Number of concurrent downloads to run (default 16)
+      --concurrent-threads int      Number of concurrent downloads to run (default: number of CPUs)
       --hash string                 hash of the blob or sdblob
   -h, --help                        help for blobsdownloader
       --http-port string            the port reflector listens to for HTTP connections (default "5569")
@@ -19,6 +23,7 @@ Flags:
       --peer-port string            the port reflector listens to for TCP peer connections (default "5567")
       --rename                      attempt renaming the downloaded file to its original name
       --stream                      whether the hash is for a stream or not (download whole file)
+      --token string                token to use for protected content
       --trace                       print all traces
       --upstream-reflector string   the address of the reflector server (without port) (default "blobcache-eu.odycdn.com")
 ```
@@ -44,7 +49,7 @@ DEBU[0014] HTTP protocol downloaded at an average of 0.97 MiB/s
 Then see [example](example/example.go)
 
 # Building
-1) Install GO 1.19+ (on ubuntu it's `sudo snap install go --classic`)
+1) Install Go 1.25+ (on ubuntu it's `sudo snap install go --classic`)
 2) run `make`
 3) ???
 4) profit
