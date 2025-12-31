@@ -26,7 +26,7 @@ func GetOriginalName(sdHash string) (string, error) {
 	if err != nil {
 		return "", errors.Err(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return "", errors.Err("Failed to get original name")
@@ -76,7 +76,7 @@ func GetSdHash(claimId string) (string, error) {
 	if err != nil {
 		return "", errors.Err(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return "", errors.Err("Failed to get sd hash")
@@ -132,7 +132,7 @@ func GetChannelStreams(channelClaimId string) ([]stream, error) {
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.Err("Failed to get streams")
@@ -183,7 +183,7 @@ func GetClaimThumbnail(claimId string) (string, error) {
 	if err != nil {
 		return "", errors.Err(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return "", errors.Err("Failed to get thumbnail")
@@ -219,13 +219,13 @@ func GetClaimThumbnail(claimId string) (string, error) {
 type Bool bool
 
 func (bit *Bool) UnmarshalJSON(data []byte) error {
-	asString := string(data)
-	if asString == "1" || asString == "true" {
+	switch string(data) {
+	case "1", "true":
 		*bit = true
-	} else if asString == "0" || asString == "false" {
+	case "0", "false":
 		*bit = false
-	} else {
-		return errors.Err("Boolean unmarshal error: invalid input %s", asString)
+	default:
+		return errors.Err("Boolean unmarshal error: invalid input %s", string(data))
 	}
 	return nil
 }
@@ -296,7 +296,7 @@ func GetClaimMetadata(claimId string) (*ClaimMetadata, error) {
 	if err != nil {
 		return nil, errors.Err(err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.Err("Failed to get thumbnail")
