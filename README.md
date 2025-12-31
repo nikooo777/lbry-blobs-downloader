@@ -1,5 +1,9 @@
 # lbry-blobs-downloader
 
+[![CI](https://github.com/nikooo777/lbry-blobs-downloader/actions/workflows/ci.yml/badge.svg)](https://github.com/nikooo777/lbry-blobs-downloader/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/nikooo777/lbry-blobs-downloader)](https://go.dev/)
+[![Release](https://img.shields.io/github/v/release/nikooo777/lbry-blobs-downloader)](https://github.com/nikooo777/lbry-blobs-downloader/releases/latest)
+
 # Usage
 ```
 download blobs or streams from reflector.
