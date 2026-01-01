@@ -11,7 +11,11 @@ import (
 )
 
 func BuildStream(sdBlob *stream.SDBlob, fileName string, destinationPath string, blobsDirectory string) error {
-	tmpDir := os.TempDir()
+	tmpDir, err := os.MkdirTemp(blobsDirectory, "blobsTmp*")
+	if err != nil {
+		return errors.Err(err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 	tmpName := path.Join(tmpDir, fileName+".tmp")
 	finalName := path.Join(destinationPath, fileName)
 	f, err := os.Create(tmpName)
